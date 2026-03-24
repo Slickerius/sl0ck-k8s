@@ -7,6 +7,7 @@ spec:
   selector:
     app: irnusdl
   type: LoadBalancer
+  externalTrafficPolicy: Local
   ports:
     - name: http
       port: 80
