@@ -1,0 +1,5 @@
+# Never commit real secret values
+# The secret.yaml / tls-secret.yaml files are templates with placeholders only
+*.key
+*.pem
+*.crt

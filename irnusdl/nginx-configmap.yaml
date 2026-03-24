@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: irnusdl
+data:
+  nginx.conf: |
+    worker_processes 2;
+
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      include mime.types;
+
+      # Cloudflare allowlist
+      geo $allow_ip {
+        default 0;
+
+        173.245.48.0/20 1;
+        103.21.244.0/22 1;
+        103.22.200.0/22 1;
+        103.31.4.0/22 1;
+        141.101.64.0/18 1;
+        108.162.192.0/18 1;
+        190.93.240.0/20 1;
+        188.114.96.0/20 1;
+        197.234.240.0/22 1;
+        198.41.128.0/17 1;
+        162.158.0.0/15 1;
+        104.16.0.0/13 1;
+        104.24.0.0/14 1;
+        172.64.0.0/13 1;
+        131.0.72.0/22 1;
+
+        2400:cb00::/32 1;
+        2606:4700::/32 1;
+        2803:f800::/32 1;
+        2405:b500::/32 1;
+        2405:8100::/32 1;
+        2a06:98c0::/29 1;
+        2c0f:f248::/32 1;
+      }
+
+      map $allow_ip $block {
+        1 "";
+        default "deny";
+      }
+
+      # gunicorn runs as sidecar in the same pod
+      upstream irnuscrawler {
+        server 127.0.0.1:8000;
+      }
+
+      server {
+        listen 80;
+
+        if ($block = "deny") {
+          return 444;
+        }
+
+        return 301 https://$host$request_uri;
+      }
+
+      server {
+        listen 443 ssl;
+
+        ssl_certificate /certificates/fullchain.pem;
+        ssl_certificate_key /certificates/privkey.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+
+        if ($block = "deny") {
+          return 444;
+        }
+
+        location / {
+          proxy_pass http://irnuscrawler;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header Host $host;
+          proxy_redirect off;
+
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection "upgrade";
+        }
+
+        location /static/ {
+          alias /home/app/web/static/;
+        }
+      }
+    }
