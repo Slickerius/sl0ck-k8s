@@ -38,10 +38,11 @@ spec:
                 secretKeyRef:
                   name: irnusdl-secret
                   key: DJANGO_SECRET_KEY
+            - name: SQLITE_DB_PATH
+              value: /data/db.sqlite3
           volumeMounts:
             - name: sqlite-data
-              mountPath: /usr/src/app/db.sqlite3
-              subPath: db.sqlite3
+              mountPath: /data
 
       containers:
         - name: web
@@ -53,6 +54,8 @@ spec:
                 secretKeyRef:
                   name: irnusdl-secret
                   key: DJANGO_SECRET_KEY
+            - name: SQLITE_DB_PATH
+              value: /data/db.sqlite3
           command:
             - gunicorn
             - --bind
@@ -62,8 +65,7 @@ spec:
             - uvicorn.workers.UvicornWorker
           volumeMounts:
             - name: sqlite-data
-              mountPath: /usr/src/app/db.sqlite3
-              subPath: db.sqlite3
+              mountPath: /data
           resources:
             requests:
               memory: "256Mi"
