@@ -80,6 +80,11 @@ data:
 
         client_max_body_size 50m;
 
+        # Block direct access to /admin
+        location /admin {
+          return 404;
+        }
+
         location / {
           proxy_pass http://strapi;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
