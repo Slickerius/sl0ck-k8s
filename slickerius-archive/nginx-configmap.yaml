@@ -80,6 +80,11 @@ data:
 
         client_max_body_size 50m;
 
+        # Block root path (Strapi redirects / to /admin, exposing it)
+        location = / {
+          return 404;
+        }
+
         # Secret gate: visiting this URL sets a cookie that unlocks /admin
         location = /cb472306-19d4-481d-aff5-b71a349e3e66/0090065f-8c3d-4404-a07f-122755b10fd0 {
           add_header Set-Cookie "strapi_gate=cb472306-19d4-481d-aff5-b71a349e3e66; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400";
