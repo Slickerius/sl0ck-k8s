@@ -85,8 +85,12 @@ data:
           return 404;
         }
 
-        # Block direct access to /admin
-        location /admin {
+        # Block the admin UI page but allow /admin/… API routes
+        # (the custom-path admin panel still calls /admin/* internally)
+        location = /admin {
+          return 404;
+        }
+        location = /admin/ {
           return 404;
         }
 
