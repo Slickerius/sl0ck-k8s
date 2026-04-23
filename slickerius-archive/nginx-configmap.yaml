@@ -94,6 +94,13 @@ data:
           return 404;
         }
 
+        # Strapi hard-codes /admin/ as the asset prefix in HTML even when
+        # ADMIN_URL is set. Rewrite static asset requests to the real path.
+        location ~ ^/admin/(.*\.(js|css|png|svg|ico|woff2?|ttf|map))$ {
+          proxy_pass http://strapi/cb472306-19d4-481d-aff5-b71a349e3e66/0090065f-8c3d-4404-a07f-122755b10fd0/$1;
+          proxy_set_header Host $host;
+        }
+
         location / {
           proxy_pass http://strapi;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
