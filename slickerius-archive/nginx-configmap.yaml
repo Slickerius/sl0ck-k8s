@@ -86,14 +86,14 @@ data:
         }
 
         # Secret gate: visiting this URL sets a cookie that unlocks /admin
-        location = /cb472306-19d4-481d-aff5-b71a349e3e66/0090065f-8c3d-4404-a07f-122755b10fd0 {
-          add_header Set-Cookie "strapi_gate=cb472306-19d4-481d-aff5-b71a349e3e66; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400";
+        location = /${GATE_PATH} {
+          add_header Set-Cookie "strapi_gate=${GATE_COOKIE}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400";
           return 302 /admin;
         }
 
         # Admin panel: only accessible with the gate cookie
         location /admin {
-          if ($cookie_strapi_gate != "cb472306-19d4-481d-aff5-b71a349e3e66") {
+          if ($cookie_strapi_gate != "${GATE_COOKIE}") {
             return 404;
           }
           proxy_pass http://strapi;

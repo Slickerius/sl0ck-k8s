@@ -13,9 +13,33 @@ spec:
       labels:
         app: slickerius-archive
     spec:
-      # Pin to vps-01 - k3s local-path PV and SQLite require a fixed node
+      # Pin to node-rst - k3s local-path PV and SQLite require a fixed node
       nodeSelector:
-        kubernetes.io/hostname: vps-01
+        kubernetes.io/hostname: node-rst.us-central1-f.c.tokped-sniper.internal
+
+      initContainers:
+        - name: nginx-config-render
+          image: nginx:1.25
+          command: ["sh", "-c"]
+          args:
+            - |
+              envsubst '${GATE_PATH} ${GATE_COOKIE}' < /config-template/nginx.conf > /config-rendered/nginx.conf
+          env:
+            - name: GATE_PATH
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: GATE_PATH
+            - name: GATE_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: GATE_COOKIE
+          volumeMounts:
+            - name: nginx-config-template
+              mountPath: /config-template
+            - name: nginx-config-rendered
+              mountPath: /config-rendered
 
       containers:
         - name: strapi
@@ -111,7 +135,7 @@ spec:
             - containerPort: 80
             - containerPort: 443
           volumeMounts:
-            - name: nginx-config
+            - name: nginx-config-rendered
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
             - name: tls-certs
@@ -129,9 +153,11 @@ spec:
         - name: sqlite-data
           persistentVolumeClaim:
             claimName: sqlite-data
-        - name: nginx-config
+        - name: nginx-config-template
           configMap:
             name: nginx-config
+        - name: nginx-config-rendered
+          emptyDir: {}
         - name: tls-certs
           secret:
             secretName: slickerius-archive-tls
