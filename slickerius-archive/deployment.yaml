@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slickerius-archive
+  namespace: slickerius-archive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slickerius-archive
+  template:
+    metadata:
+      labels:
+        app: slickerius-archive
+    spec:
+      # Pin to vps-01 - k3s local-path PV and SQLite require a fixed node
+      nodeSelector:
+        kubernetes.io/hostname: vps-01
+
+      containers:
+        - name: strapi
+          image: ghcr.io/slickerius/slickerius-archive:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 1337
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "1337"
+            - name: DATABASE_CLIENT
+              value: "sqlite"
+            - name: DATABASE_FILENAME
+              value: "/data/data.db"
+            - name: APP_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: APP_KEYS
+            - name: API_TOKEN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: API_TOKEN_SALT
+            - name: ADMIN_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: ADMIN_JWT_SECRET
+            - name: TRANSFER_TOKEN_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: TRANSFER_TOKEN_SALT
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: ENCRYPTION_KEY
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: JWT_SECRET
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: AWS_ACCESS_SECRET
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: AWS_REGION
+            - name: AWS_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: AWS_BUCKET
+            - name: CDN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: strapi-secret
+                  key: CDN_URL
+          volumeMounts:
+            - name: sqlite-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+        - name: nginx
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: tls-certs
+              mountPath: /certificates
+              readOnly: true
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+
+      volumes:
+        - name: sqlite-data
+          persistentVolumeClaim:
+            claimName: sqlite-data
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+        - name: tls-certs
+          secret:
+            secretName: slickerius-archive-tls
+            items:
+              - key: tls.crt
+                path: fullchain.pem
+              - key: tls.key
+                path: privkey.pem
+
+      imagePullSecrets:
+        - name: ghcr-secret

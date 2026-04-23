@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: irnusdl
+  namespace: irnusdl
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - irnus-dl.slickerius.com
+        - irnus-dl.slickeri.us
+      secretName: irnusdl-tls
+  rules:
+    - host: irnus-dl.slickerius.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: irnusdl
+                port:
+                  number: 443
+    - host: irnus-dl.slickeri.us
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: irnusdl
+                port:
+                  number: 443

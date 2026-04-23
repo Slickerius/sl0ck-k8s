@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: slickerius-archive
+  namespace: slickerius-archive
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api-archive.slickerius.com
+        - api-archive.slickeri.us
+      secretName: slickerius-archive-tls
+  rules:
+    - host: api-archive.slickerius.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-archive
+                port:
+                  number: 443
+    - host: api-archive.slickeri.us
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-archive
+                port:
+                  number: 443
