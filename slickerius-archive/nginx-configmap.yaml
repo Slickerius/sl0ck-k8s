@@ -80,25 +80,22 @@ data:
 
         client_max_body_size 50m;
 
-        # Block root redirect (Strapi redirects / to admin URL, leaking the secret path)
-        location = / {
-          return 404;
+        # Secret gate: visiting this URL sets a cookie that unlocks /admin
+        location = /cb472306-19d4-481d-aff5-b71a349e3e66/0090065f-8c3d-4404-a07f-122755b10fd0 {
+          add_header Set-Cookie "strapi_gate=cb472306-19d4-481d-aff5-b71a349e3e66; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400";
+          return 302 /admin;
         }
 
-        # Block the admin UI page but allow /admin/… API routes
-        # (the custom-path admin panel still calls /admin/* internally)
-        location = /admin {
-          return 404;
-        }
-        location = /admin/ {
-          return 404;
-        }
-
-        # Strapi hard-codes /admin/ as the asset prefix in HTML even when
-        # ADMIN_URL is set. Rewrite static asset requests to the real path.
-        location ~ ^/admin/(.*\.(js|css|png|svg|ico|woff2?|ttf|map))$ {
-          proxy_pass http://strapi/cb472306-19d4-481d-aff5-b71a349e3e66/0090065f-8c3d-4404-a07f-122755b10fd0/$1;
+        # Admin panel: only accessible with the gate cookie
+        location /admin {
+          if ($cookie_strapi_gate != "cb472306-19d4-481d-aff5-b71a349e3e66") {
+            return 404;
+          }
+          proxy_pass http://strapi;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
           proxy_set_header Host $host;
+          proxy_redirect off;
         }
 
         location / {
