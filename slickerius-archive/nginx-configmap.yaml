@@ -80,6 +80,11 @@ data:
 
         client_max_body_size 50m;
 
+        # Block root redirect (Strapi redirects / to admin URL, leaking the secret path)
+        location = / {
+          return 404;
+        }
+
         # Block direct access to /admin
         location /admin {
           return 404;
