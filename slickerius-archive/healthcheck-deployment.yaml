@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcheck
+  namespace: slickerius-archive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: healthcheck
+  template:
+    metadata:
+      labels:
+        app: healthcheck
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: vps-01
+      containers:
+      - name: healthcheck
+        image: curlimages/curl:latest
+        command: ["sh", "/scripts/healthcheck.sh"]
+        env:
+        - name: DISCORD_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: healthcheck-secret
+              key: DISCORD_WEBHOOK_URL
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
+      volumes:
+      - name: script
+        configMap:
+          name: healthcheck-script
+          defaultMode: 0755

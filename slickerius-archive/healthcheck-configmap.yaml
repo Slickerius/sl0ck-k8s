@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthcheck-script
+  namespace: slickerius-archive
+data:
+  healthcheck.sh: |
+    #!/bin/sh
+    while true; do
+      S1=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://archive.slickeri.us/ || echo TIMEOUT)
+      S2=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://archive.slickerius.com/ || echo TIMEOUT)
+      if [ "$S1" = "200" ] && [ "$S2" = "200" ]; then
+        MSG="{\"content\": \"Health check OK - archive.slickeri.us ($S1), archive.slickerius.com ($S2)\"}"
+      else
+        MSG="{\"content\": \"<@803885304519065611> Health check FAILED - archive.slickeri.us ($S1), archive.slickerius.com ($S2)\"}"
+      fi
+      curl -s -H "Content-Type: application/json" -d "$MSG" "$DISCORD_WEBHOOK_URL" > /dev/null 2>&1
+      sleep 60
+    done
