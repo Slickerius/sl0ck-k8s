@@ -13,9 +13,9 @@ spec:
       labels:
         app: irnusdl
     spec:
-      # Pin to vps-01 — k3s local-path PV and SQLite require a fixed node
+      # Pin to node-jw — k3s local-path PV and SQLite require a fixed node
       nodeSelector:
-        kubernetes.io/hostname: vps-01
+        kubernetes.io/hostname: node-jw.us-central1-b.c.eighth-pursuit-404222.internal
 
       initContainers:
         # Copy baked-in static files from the app image into the shared volume
