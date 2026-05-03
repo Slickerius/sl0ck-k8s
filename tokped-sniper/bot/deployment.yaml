@@ -4,7 +4,7 @@ metadata:
   name: bot
   namespace: tokped-sniper
 spec:
-  replicas: 3
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -27,6 +27,7 @@ spec:
                     operator: NotIn
                     values:
                       - node-rst.us-central1-f.c.tokped-sniper.internal
+                      - node-fhz.us-central1-b.c.main-proj-454016.internal
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
