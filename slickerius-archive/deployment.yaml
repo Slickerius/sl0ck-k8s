@@ -120,6 +120,14 @@ spec:
                 secretKeyRef:
                   name: strapi-secret
                   key: ADMIN_URL
+          readinessProbe:
+            httpGet:
+              path: /api/albums
+              port: 1337
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           volumeMounts:
             - name: sqlite-data
               mountPath: /data
