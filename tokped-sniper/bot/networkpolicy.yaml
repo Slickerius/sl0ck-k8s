@@ -22,6 +22,12 @@ spec:
             cidr: 10.42.0.0/16
       ports:
         - port: 3306
+    # HTTP proxy on vps-01 for Tokopedia GQL (geo-restricted endpoint)
+    - to:
+        - ipBlock:
+            cidr: 103.150.196.198/32
+      ports:
+        - port: 8118
     # External HTTPS — Tokopedia scraping + Discord API
     - to:
         - ipBlock:

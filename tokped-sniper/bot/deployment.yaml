@@ -79,6 +79,8 @@ spec:
                 secretKeyRef:
                   name: bot-secret
                   key: DB_PASSWORD
+            - name: GQL_PROXY
+              value: "http://103.150.196.198:8118"
           envFrom:
             - configMapRef:
                 name: bot-config
