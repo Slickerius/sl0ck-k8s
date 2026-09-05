@@ -79,7 +79,7 @@ spec:
 
         - name: tmp-cleanup
           image: busybox
-          command: ["sh", "-c", "while true; do find /tmp-files -type f -mmin +60 -delete; sleep 3600; done"]
+          command: ["sh", "-c", "while true; do find /tmp-files -type f -mmin +60 -delete; find /tmp-files -mindepth 1 -type d -empty -delete; sleep 3600; done"]
           volumeMounts:
             - name: static-files
               mountPath: /tmp-files
