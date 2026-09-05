@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flux-reconcile-probe
+  namespace: flux-system
+data:
+  purpose: verify-create-and-prune
