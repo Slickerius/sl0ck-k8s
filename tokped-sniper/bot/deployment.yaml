@@ -36,9 +36,12 @@ spec:
               topologyKey: kubernetes.io/hostname
       dnsPolicy: "None"
       dnsConfig:
+        # kube-dns only. Bun's resolver queries every listed nameserver
+        # concurrently and takes the first reply, so a public resolver here
+        # wins the race with a fast NXDOMAIN for *.cluster.local and breaks
+        # in-cluster lookups. CoreDNS already forwards external names.
         nameservers:
           - "10.43.0.10"
-          - "8.8.8.8"
         searches:
           - tokped-sniper.svc.cluster.local
           - svc.cluster.local

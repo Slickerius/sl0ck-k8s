@@ -16,10 +16,15 @@ spec:
           protocol: UDP
         - port: 53
           protocol: TCP
-    # MariaDB — allow entire cluster pod CIDR (k3s default: 10.42.0.0/16)
+    # MariaDB — pod CIDR (10.42.0.0/16) plus the Service CIDR (10.43.0.0/16).
+    # The app dials the mariadb Service, and nodes differ on whether egress is
+    # evaluated before or after DNAT, so the ClusterIP must be allowed too or
+    # older nodes silently drop the connection.
     - to:
         - ipBlock:
             cidr: 10.42.0.0/16
+        - ipBlock:
+            cidr: 10.43.0.0/16
       ports:
         - port: 3306
     # HTTP proxy on vps-01 for Tokopedia GQL (geo-restricted endpoint)
