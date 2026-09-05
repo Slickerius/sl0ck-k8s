@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - gotk-components.yaml
+  - gotk-sync.yaml
+patches:
+  # Cross-node pod-to-Service traffic is unreliable on this k3s cluster.
+  # Keep the four small Flux controllers together so event delivery does not
+  # add multi-minute timeouts to every reconciliation.
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      namespace: flux-system
+      labelSelector: app.kubernetes.io/part-of=flux
+    patch: |
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          kubernetes.io/hostname: node-fhui.c.ta-project-400715.internal
