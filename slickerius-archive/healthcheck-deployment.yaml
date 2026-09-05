@@ -12,6 +12,8 @@ spec:
     metadata:
       labels:
         app: healthcheck
+      annotations:
+        healthcheck-script-version: "2026-09-06-1"
     spec:
       nodeSelector:
         kubernetes.io/hostname: vps-01

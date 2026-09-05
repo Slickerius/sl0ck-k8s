@@ -6,14 +6,41 @@ metadata:
 data:
   healthcheck.sh: |
     #!/bin/sh
+    BOTH_DOWN_SINCE=0
+    ALERTED=0
+
+    check_url() {
+      code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$1") || code=TIMEOUT
+      echo "$code"
+    }
+
     while true; do
-      S1=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://archive.slickeri.us/ || echo TIMEOUT)
-      S2=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://archive.slickerius.com/ || echo TIMEOUT)
+      S1=$(check_url https://archive.slickeri.us/)
+      S2=$(check_url https://archive.slickerius.com/)
+      PREFIX=""
+
       if [ "$S1" = "200" ] && [ "$S2" = "200" ]; then
-        MSG="{\"content\": \"Health check OK - archive.slickeri.us ($S1), archive.slickerius.com ($S2)\"}"
+        STATUS="OK"
       else
-        MSG="{\"content\": \"<@803885304519065611> Health check FAILED - archive.slickeri.us ($S1), archive.slickerius.com ($S2)\"}"
+        STATUS="FAILED"
       fi
+
+      if [ "$S1" != "200" ] && [ "$S2" != "200" ]; then
+        NOW=$(date +%s)
+        if [ "$BOTH_DOWN_SINCE" -eq 0 ]; then
+          BOTH_DOWN_SINCE=$NOW
+        fi
+        DOWN_SECONDS=$((NOW - BOTH_DOWN_SINCE))
+        if [ "$DOWN_SECONDS" -ge 300 ] && [ "$ALERTED" -eq 0 ]; then
+          PREFIX="<@803885304519065611> "
+          ALERTED=1
+        fi
+      else
+        BOTH_DOWN_SINCE=0
+        ALERTED=0
+      fi
+
+      MSG="{\"content\": \"${PREFIX}Health check $STATUS - archive.slickeri.us ($S1), archive.slickerius.com ($S2)\"}"
       curl -s -H "Content-Type: application/json" -d "$MSG" "$DISCORD_WEBHOOK_URL" > /dev/null 2>&1
       sleep 60
     done
