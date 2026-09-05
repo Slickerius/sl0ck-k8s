@@ -1,0 +1,2 @@
+# SOPS policy is repository tooling, not a Kubernetes object.
+.sops.yaml
