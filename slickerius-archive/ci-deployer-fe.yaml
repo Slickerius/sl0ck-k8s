@@ -1,0 +1,45 @@
+# Least-privilege identity used by the slickerius-archive-fe GitHub Actions
+# deploy job. It can update the frontend Deployment and watch the result.
+# The Strapi backend in this namespace is deliberately out of reach.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-deployer-fe
+  namespace: slickerius-archive
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-deployer-fe
+  namespace: slickerius-archive
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+    resourceNames: ["slickerius-archive-fe"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-deployer-fe
+  namespace: slickerius-archive
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-deployer-fe
+subjects:
+  - kind: ServiceAccount
+    name: github-deployer-fe
+    namespace: slickerius-archive
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-deployer-fe-token
+  namespace: slickerius-archive
+  annotations:
+    kubernetes.io/service-account.name: github-deployer-fe
+type: kubernetes.io/service-account-token

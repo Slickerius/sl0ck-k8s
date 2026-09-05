@@ -1,0 +1,67 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 1m
+  ref:
+    branch: main
+  url: https://github.com/Slickerius/sl0ck-k8s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 1m
+  path: ./
+  prune: false
+  suspend: true
+  wait: true
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+  # App CI owns only these image fields. Flux owns and corrects all other
+  # fields while preserving the exact git-SHA image tags deployed by CI.
+  ignore:
+    - target:
+        group: apps
+        version: v1
+        kind: Deployment
+        name: ^irnusdl$
+        namespace: ^irnusdl$
+      paths:
+        - /spec/template/spec/initContainers/0/image
+        - /spec/template/spec/initContainers/1/image
+        - /spec/template/spec/containers/0/image
+    - target:
+        group: apps
+        version: v1
+        kind: Deployment
+        name: ^slickerius-archive$
+        namespace: ^slickerius-archive$
+      paths:
+        - /spec/template/spec/containers/0/image
+    - target:
+        group: apps
+        version: v1
+        kind: Deployment
+        name: ^slickerius-archive-fe$
+        namespace: ^slickerius-archive$
+      paths:
+        - /spec/template/spec/containers/0/image
+    - target:
+        group: apps
+        version: v1
+        kind: Deployment
+        name: ^bot$
+        namespace: ^tokped-sniper$
+      paths:
+        - /spec/template/spec/containers/0/image
