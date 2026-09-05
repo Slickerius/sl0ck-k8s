@@ -1,0 +1,49 @@
+# Least-privilege identity used by the Tokopedia-Sniper GitHub Actions deploy job.
+# It can restart the bot Deployment and watch the result. Nothing else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-deployer
+  namespace: tokped-sniper
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-deployer
+  namespace: tokped-sniper
+rules:
+  # `kubectl rollout restart` reads then patches the Deployment.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+    resourceNames: ["bot"]
+  # `kubectl rollout status` watches; watch cannot be name-restricted,
+  # so this stays namespace-scoped instead.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-deployer
+  namespace: tokped-sniper
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-deployer
+subjects:
+  - kind: ServiceAccount
+    name: github-deployer
+    namespace: tokped-sniper
+---
+# k8s 1.24+ no longer auto-creates SA token secrets, and CI needs a
+# non-expiring one, so it is requested explicitly.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-deployer-token
+  namespace: tokped-sniper
+  annotations:
+    kubernetes.io/service-account.name: github-deployer
+type: kubernetes.io/service-account-token

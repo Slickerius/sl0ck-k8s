@@ -5,6 +5,10 @@ metadata:
   namespace: irnusdl
 spec:
   replicas: 1
+  # node-jw cannot fit two copies, and the local-path PV is RWO — the old pod
+  # must be gone before the new one starts.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: irnusdl
@@ -17,6 +21,9 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: node-jw.us-central1-b.c.eighth-pursuit-404222.internal
 
+      # The :latest tags below are only the bootstrap value. CI pins
+      # init-statics, init-migrate and web to :<git-sha> on every deploy,
+      # so `kubectl get deploy -o wide` shows the live commit.
       initContainers:
         # Copy baked-in static files from the app image into the shared volume
         - name: init-statics

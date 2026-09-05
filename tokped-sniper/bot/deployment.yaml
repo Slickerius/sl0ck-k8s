@@ -47,6 +47,9 @@ spec:
           - name: ndots
             value: "5"
       containers:
+        # The :latest tag is only the bootstrap value. CI pins this to
+        # :<git-sha> on every deploy, so `kubectl get deploy -o wide`
+        # shows the live commit.
         - name: bot
           image: ghcr.io/slickerius/tokped-sniper:latest
           imagePullPolicy: Always
