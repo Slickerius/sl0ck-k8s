@@ -52,9 +52,9 @@ spec:
                 capabilities:
                   drop: ["ALL"]
               volumeMounts:
+                # Not read-only: SQLite in WAL mode has to be able to open its shared-memory file, even to read.
                 - name: data
                   mountPath: /data
-                  readOnly: true
                 - name: tmp
                   mountPath: /tmp
           volumes:
