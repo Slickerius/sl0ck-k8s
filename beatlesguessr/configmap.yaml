@@ -1,0 +1,11 @@
+# Settings that are not secret. The Google client id is the public OAuth id, not a secret.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: beatlesguessr-config
+  namespace: beatlesguessr
+data:
+  BEATLESGUESSR_S3_BUCKET: "beatlesguessr-audio-431982233400"
+  BEATLESGUESSR_S3_REGION: "ap-southeast-3"
+  BEATLESGUESSR_S3_PREFIX: "audio/"
+  GOOGLE_CLIENT_ID: "744275072348-1ev8ach71ddmgtrp29mabjur2ueltl4o.apps.googleusercontent.com"

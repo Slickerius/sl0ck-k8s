@@ -1,0 +1,48 @@
+# Least-privilege identity used by the beatlesguessr GitHub Actions deploy job.
+# It can update the beatlesguessr Deployment and watch the result. Nothing else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-deployer
+  namespace: beatlesguessr
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-deployer
+  namespace: beatlesguessr
+rules:
+  # `kubectl set image` reads then patches the Deployment.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+    resourceNames: ["beatlesguessr"]
+  # `kubectl rollout status` watches. Watch cannot be name-restricted, so this stays namespace-scoped.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-deployer
+  namespace: beatlesguessr
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-deployer
+subjects:
+  - kind: ServiceAccount
+    name: github-deployer
+    namespace: beatlesguessr
+---
+# Kubernetes 1.24 and later no longer create a token for a ServiceAccount, so a non-expiring one is requested
+# explicitly.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-deployer-token
+  namespace: beatlesguessr
+  annotations:
+    kubernetes.io/service-account.name: github-deployer
+type: kubernetes.io/service-account-token

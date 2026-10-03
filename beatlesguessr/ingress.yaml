@@ -1,0 +1,81 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: beatlesguessr
+  namespace: beatlesguessr
+  annotations:
+    # Live rooms are WebSockets, so keep idle connections open. The app pings every 25 seconds anyway.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Profile pictures go up to 5 MB.
+    nginx.ingress.kubernetes.io/proxy-body-size: "6m"
+    # Per client address. The burst allowance covers a page load, which fetches many files at once.
+    nginx.ingress.kubernetes.io/limit-rps: "30"
+    nginx.ingress.kubernetes.io/limit-connections: "60"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - beatlesguessr.slickeri.us
+        - beatlesguessr.slickerius.net
+      secretName: beatlesguessr-tls
+  rules:
+    - host: beatlesguessr.slickeri.us
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: beatlesguessr
+                port:
+                  number: 80
+    - host: beatlesguessr.slickerius.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: beatlesguessr
+                port:
+                  number: 80
+---
+# Sign-in and registration get a much lower rate limit, to slow down password guessing.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: beatlesguessr-auth
+  namespace: beatlesguessr
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "2"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - beatlesguessr.slickeri.us
+        - beatlesguessr.slickerius.net
+      secretName: beatlesguessr-tls
+  rules:
+    - host: beatlesguessr.slickeri.us
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: beatlesguessr
+                port:
+                  number: 80
+    - host: beatlesguessr.slickerius.net
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: beatlesguessr
+                port:
+                  number: 80

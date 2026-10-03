@@ -1,0 +1,93 @@
+# Checks both hostnames once a minute and posts to Discord only when something changes: after three failed
+# checks in a row, and when it recovers.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthcheck-script
+  namespace: beatlesguessr
+data:
+  healthcheck.sh: |
+    #!/bin/sh
+    FAILS=0
+    ALERTED=0
+
+    check_url() {
+      code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$1") || code=TIMEOUT
+      echo "$code"
+    }
+
+    post() {
+      curl -s -H "Content-Type: application/json" -d "{\"content\": \"$1\"}" "$DISCORD_WEBHOOK_URL" > /dev/null 2>&1
+    }
+
+    post "beatlesguessr health check started."
+    while true; do
+      A=$(check_url https://beatlesguessr.slickeri.us/api/health)
+      B=$(check_url https://beatlesguessr.slickerius.net/api/health)
+      if [ "$A" = "200" ] && [ "$B" = "200" ]; then
+        FAILS=0
+        if [ "$ALERTED" -eq 1 ]; then
+          post "beatlesguessr is back. beatlesguessr.slickeri.us ($A), beatlesguessr.slickerius.net ($B)"
+          ALERTED=0
+        fi
+      else
+        FAILS=$((FAILS + 1))
+        if [ "$FAILS" -ge 3 ] && [ "$ALERTED" -eq 0 ]; then
+          post "beatlesguessr is down. beatlesguessr.slickeri.us ($A), beatlesguessr.slickerius.net ($B)"
+          ALERTED=1
+        fi
+      fi
+      sleep 60
+    done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcheck
+  namespace: beatlesguessr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: healthcheck
+  template:
+    metadata:
+      labels:
+        app: healthcheck
+      annotations:
+        healthcheck-script-version: "2026-10-04-1"
+    spec:
+      # Anywhere except the node that runs the app, so the check survives that node going down.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: ["node-fhztc"]
+      containers:
+        - name: healthcheck
+          image: curlimages/curl:latest
+          command: ["sh", "/scripts/healthcheck.sh"]
+          env:
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: healthcheck-secret
+                  key: DISCORD_WEBHOOK_URL
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+      volumes:
+        - name: script
+          configMap:
+            name: healthcheck-script
+            defaultMode: 0755

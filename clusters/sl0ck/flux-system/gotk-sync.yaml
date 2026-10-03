@@ -65,3 +65,11 @@ spec:
         namespace: ^tokped-sniper$
       paths:
         - /spec/template/spec/containers/0/image
+    - target:
+        group: apps
+        version: v1
+        kind: Deployment
+        name: ^beatlesguessr$
+        namespace: ^beatlesguessr$
+      paths:
+        - /spec/template/spec/containers/0/image

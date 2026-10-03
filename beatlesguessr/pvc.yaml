@@ -1,0 +1,24 @@
+# The SQLite database and uploaded avatars. Pinned to node-fhztc through the Deployment, because the
+# local-path volume lives on that node.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  namespace: beatlesguessr
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Tracks downloaded from S3, so a restart does not start with a cold cache.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: audio-cache
+  namespace: beatlesguessr
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 4Gi

@@ -1,0 +1,66 @@
+# Nightly backup of the SQLite database and the avatars to s3://<bucket>/backups/, using the write-only
+# beatlesguessr-backup user. The job runs on node-fhztc and mounts the same volume as the app (ReadWriteOnce
+# volumes can be shared by pods on one node). To restore, see the docstring in backend/app/backup.py.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup
+  namespace: beatlesguessr
+spec:
+  schedule: "17 19 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: node-fhztc
+          imagePullSecrets:
+            - name: ghcr-secret
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: ghcr.io/slickerius/beatlesguessr:latest
+              imagePullPolicy: Always
+              command: ["python", "-m", "app.backup"]
+              workingDir: /app/backend
+              envFrom:
+                - configMapRef:
+                    name: beatlesguessr-config
+                - secretRef:
+                    name: beatlesguessr-backup-secret
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: data
+            - name: tmp
+              emptyDir:
+                sizeLimit: 512Mi

@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beatlesguessr
+  namespace: beatlesguessr
+spec:
+  # One replica only. Rooms, sockets and timers live in this process, and the data volume is ReadWriteOnce.
+  replicas: 1
+  # The old pod must be gone before the new one mounts the volume. A rollout ends any match in progress.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: beatlesguessr
+  template:
+    metadata:
+      labels:
+        app: beatlesguessr
+    spec:
+      # Pin to node-fhztc: it has room to spare, and the local-path volumes live there.
+      nodeSelector:
+        kubernetes.io/hostname: node-fhztc
+      terminationGracePeriodSeconds: 30
+      imagePullSecrets:
+        - name: ghcr-secret
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          # The :latest tag is only the bootstrap value. CI pins the container to :<git-sha> on every deploy, so
+          # `kubectl get deploy -o wide` shows the live commit.
+          image: ghcr.io/slickerius/beatlesguessr:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: BEATLESGUESSR_COOKIE_SECURE
+              value: "1"
+            # ingress-nginx sets X-Forwarded-For from the real connection. Keep both hostnames DNS-only in
+            # Cloudflare so that header can be trusted.
+            - name: BEATLESGUESSR_TRUST_PROXY
+              value: "1"
+          envFrom:
+            - configMapRef:
+                name: beatlesguessr-config
+            # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for the read-only audio user.
+            - secretRef:
+                name: beatlesguessr-secret
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 250m
+              memory: 320Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: audio-cache
+              mountPath: /cache
+            # Clips are cut here and deleted when the round ends.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: data
+        - name: audio-cache
+          persistentVolumeClaim:
+            claimName: audio-cache
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
