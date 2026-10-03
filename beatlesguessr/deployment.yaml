@@ -6,9 +6,16 @@ metadata:
 spec:
   # One replica only. Rooms, sockets and timers live in this process, and the data volume is ReadWriteOnce.
   replicas: 1
-  # The old pod must be gone before the new one mounts the volume. A rollout ends any match in progress.
+  # The new pod starts and passes its readiness probe before the old one is stopped, so the site never answers 503
+  # during a deploy. Both pods run on node-fhztc for a few seconds and share its local volumes, which is safe
+  # because the SQLite database is opened in WAL mode and the audio cache writes files atomically. A rollout still
+  # ends any match in progress, because rooms live in the old pod's memory.
+  minReadySeconds: 5
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: beatlesguessr
@@ -20,7 +27,7 @@ spec:
       # Pin to node-fhztc: it has room to spare, and the local-path volumes live there.
       nodeSelector:
         kubernetes.io/hostname: node-fhztc
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 45
       imagePullSecrets:
         - name: ghcr-secret
       securityContext:
@@ -51,6 +58,11 @@ spec:
             # AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for the read-only audio user.
             - secretRef:
                 name: beatlesguessr-secret
+          # Keep serving while the ingress drops this pod from its endpoints, then let uvicorn shut down.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "15"]
           startupProbe:
             httpGet:
               path: /api/health
@@ -61,7 +73,7 @@ spec:
             httpGet:
               path: /api/health
               port: http
-            periodSeconds: 10
+            periodSeconds: 5
             failureThreshold: 3
           livenessProbe:
             httpGet:
