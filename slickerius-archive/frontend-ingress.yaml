@@ -1,35 +1,33 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: irnusdl
-  namespace: irnusdl
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  name: slickerius-archive-fe
+  namespace: slickerius-archive
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - irnus-dl.slickeri.us
-        - irnus-dl.slickerius.net
-      secretName: irnusdl-tls
+        - archive.slickeri.us
+        - archive.slickerius.net
+      secretName: slickerius-archive-fe-tls
   rules:
-    - host: irnus-dl.slickeri.us
+    - host: archive.slickeri.us
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: irnusdl
+                name: slickerius-archive-fe
                 port:
-                  number: 443
-    - host: irnus-dl.slickerius.net
+                  number: 80
+    - host: archive.slickerius.net
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: irnusdl
+                name: slickerius-archive-fe
                 port:
-                  number: 443
+                  number: 80

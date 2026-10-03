@@ -16,7 +16,7 @@ data:
 
     while true; do
       S1=$(check_url https://archive.slickeri.us/)
-      S2=$(check_url https://archive.slickerius.com/)
+      S2=$(check_url https://archive.slickerius.net/)
       PREFIX=""
 
       if [ "$S1" = "200" ] && [ "$S2" = "200" ]; then
@@ -40,7 +40,7 @@ data:
         ALERTED=0
       fi
 
-      MSG="{\"content\": \"${PREFIX}Health check $STATUS - archive.slickeri.us ($S1), archive.slickerius.com ($S2)\"}"
+      MSG="{\"content\": \"${PREFIX}Health check $STATUS - archive.slickeri.us ($S1), archive.slickerius.net ($S2)\"}"
       curl -s -H "Content-Type: application/json" -d "$MSG" "$DISCORD_WEBHOOK_URL" > /dev/null 2>&1
       sleep 60
     done

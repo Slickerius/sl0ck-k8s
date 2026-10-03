@@ -9,11 +9,11 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - api-archive.slickerius.com
         - api-archive.slickeri.us
+        - api-archive.slickerius.net
       secretName: slickerius-archive-tls
   rules:
-    - host: api-archive.slickerius.com
+    - host: api-archive.slickeri.us
       http:
         paths:
           - path: /
@@ -23,7 +23,7 @@ spec:
                 name: slickerius-archive
                 port:
                   number: 443
-    - host: api-archive.slickeri.us
+    - host: api-archive.slickerius.net
       http:
         paths:
           - path: /
