@@ -12,7 +12,7 @@ data:
   # Email verification through Amazon SES. Resend verified the sending domain, so sending is on.
   BEATLESGUESSR_MAIL_ENABLED: "1"
   BEATLESGUESSR_MAIL_PROVIDER: "resend"
-  BEATLESGUESSR_MAIL_FROM: "noreply@beatlesguessr.slickerius.net"
+  BEATLESGUESSR_MAIL_FROM: "beatlesguessr <noreply@beatlesguessr.slickerius.net>"
   BEATLESGUESSR_PUBLIC_URL: "https://beatlesguessr.slickerius.net"
   BEATLESGUESSR_SES_REGION: "ap-southeast-3"
   BEATLESGUESSR_SES_CONFIGURATION_SET: "beatlesguessr"
