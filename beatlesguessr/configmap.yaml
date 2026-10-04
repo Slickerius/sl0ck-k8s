@@ -9,8 +9,8 @@ data:
   BEATLESGUESSR_S3_REGION: "ap-southeast-3"
   BEATLESGUESSR_S3_PREFIX: "audio/"
   GOOGLE_CLIENT_ID: "744275072348-1ev8ach71ddmgtrp29mabjur2ueltl4o.apps.googleusercontent.com"
-  # Email verification through Amazon SES. Set MAIL_ENABLED to "1" once SES has production access.
-  BEATLESGUESSR_MAIL_ENABLED: "0"
+  # Email verification through Amazon SES. Resend verified the sending domain, so sending is on.
+  BEATLESGUESSR_MAIL_ENABLED: "1"
   BEATLESGUESSR_MAIL_PROVIDER: "resend"
   BEATLESGUESSR_MAIL_FROM: "noreply@beatlesguessr.slickerius.net"
   BEATLESGUESSR_PUBLIC_URL: "https://beatlesguessr.slickerius.net"
