@@ -12,10 +12,6 @@ metadata:
     # Per client address. The burst allowance covers a page load, which fetches many files at once.
     nginx.ingress.kubernetes.io/limit-rps: "30"
     nginx.ingress.kubernetes.io/limit-connections: "60"
-    # Only accept connections that come through Cloudflare (Authenticated Origin Pulls).
-    nginx.ingress.kubernetes.io/auth-tls-secret: "beatlesguessr/cloudflare-origin-pull-ca"
-    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
-    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
 spec:
   ingressClassName: nginx
   tls:
@@ -55,10 +51,6 @@ metadata:
     nginx.ingress.kubernetes.io/limit-rps: "2"
     nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
     nginx.ingress.kubernetes.io/limit-connections: "10"
-    # Only accept connections that come through Cloudflare (Authenticated Origin Pulls).
-    nginx.ingress.kubernetes.io/auth-tls-secret: "beatlesguessr/cloudflare-origin-pull-ca"
-    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
-    nginx.ingress.kubernetes.io/auth-tls-verify-depth: "1"
 spec:
   ingressClassName: nginx
   tls:
