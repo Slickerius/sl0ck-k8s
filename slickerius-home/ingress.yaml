@@ -1,12 +1,11 @@
-# The two www names serve the site. from-to-www-redirect sends each bare domain (slickeri.us, slickerius.net) to its
-# own www counterpart with a permanent redirect that keeps the path and query string.
+# All four names reach the same pods. The pod's nginx sends the bare domains (slickeri.us, slickerius.net) to their own
+# www counterpart. ingress-nginx from-to-www-redirect is not used because it puts the internal :442 port in the URL.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: slickerius-home
   namespace: slickerius-home
   annotations:
-    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
     nginx.ingress.kubernetes.io/limit-rps: "30"
     nginx.ingress.kubernetes.io/limit-connections: "60"
 spec:
@@ -30,6 +29,26 @@ spec:
                 port:
                   number: 80
     - host: www.slickerius.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-home
+                port:
+                  number: 80
+    - host: slickeri.us
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-home
+                port:
+                  number: 80
+    - host: slickerius.net
       http:
         paths:
           - path: /
