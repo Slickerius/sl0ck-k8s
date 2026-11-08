@@ -1,0 +1,106 @@
+# Pull-based deploys for the personal site. Every minute this job asks GHCR which image `latest` points to and, when
+# it changed, pins the Deployment to that exact digest. GitHub Actions only builds and pushes the image, so no
+# cluster credentials live in GitHub. The Deployment's image field is ignored by Flux (see gotk-sync.yaml).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploy-watcher
+  namespace: slickerius-home
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deploy-watcher
+  namespace: slickerius-home
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+    resourceNames: ["slickerius-home"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deploy-watcher
+  namespace: slickerius-home
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deploy-watcher
+subjects:
+  - kind: ServiceAccount
+    name: deploy-watcher
+    namespace: slickerius-home
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: deploy-watcher
+  namespace: slickerius-home
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 60
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 55
+      ttlSecondsAfterFinished: 600
+      template:
+        spec:
+          serviceAccountName: deploy-watcher
+          restartPolicy: Never
+          # Same node as the site and ingress. Cross-node pod-to-Service traffic is unreliable on this cluster.
+          nodeSelector:
+            kubernetes.io/hostname: vps-01
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: watch
+              image: curlimages/curl:8.11.1
+              command: ["sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  REPO=slickerius/slickerius-home
+                  SA=/var/run/secrets/kubernetes.io/serviceaccount
+                  API=https://kubernetes.default.svc/apis/apps/v1/namespaces/slickerius-home/deployments/slickerius-home
+                  AUTH=$(sed -n 's/.*"auth":"\([^"]*\)".*/\1/p' /creds/.dockerconfigjson | head -1)
+                  TOKEN=$(curl -fsS -H "Authorization: Basic $AUTH" "https://ghcr.io/token?service=ghcr.io&scope=repository:$REPO:pull" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+                  DIGEST=$(curl -fsSI -H "Authorization: Bearer $TOKEN" \
+                    -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+                    "https://ghcr.io/v2/$REPO/manifests/latest" | tr -d '\r' | sed -n 's/^[Dd]ocker-[Cc]ontent-[Dd]igest: //p')
+                  case "$DIGEST" in sha256:*) ;; *) echo "no digest for latest"; exit 1 ;; esac
+                  WANT="ghcr.io/$REPO:latest@$DIGEST"
+                  CUR=$(curl -fsS --cacert $SA/ca.crt -H "Authorization: Bearer $(cat $SA/token)" "$API" | grep -o '"image": *"ghcr.io/slickerius/slickerius-home[^"]*"' | head -1 | sed 's/.*: *"//; s/"$//')
+                  if [ "$CUR" = "$WANT" ]; then echo "up to date at $DIGEST"; exit 0; fi
+                  echo "rolling out $DIGEST (was $CUR)"
+                  curl -fsS --cacert $SA/ca.crt -X PATCH -H "Authorization: Bearer $(cat $SA/token)" \
+                    -H "Content-Type: application/strategic-merge-patch+json" \
+                    -d "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"web\",\"image\":\"$WANT\"}]}}}}" "$API" > /dev/null
+                  echo "patched"
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: creds
+                  mountPath: /creds
+                  readOnly: true
+          volumes:
+            - name: creds
+              secret:
+                secretName: ghcr-secret
