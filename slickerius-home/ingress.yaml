@@ -1,0 +1,92 @@
+# The two www names serve the site.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: slickerius-home
+  namespace: slickerius-home
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "30"
+    nginx.ingress.kubernetes.io/limit-connections: "60"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - www.slickeri.us
+        - www.slickerius.net
+        - slickeri.us
+        - slickerius.net
+      secretName: slickerius-home-tls
+  rules:
+    - host: www.slickeri.us
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-home
+                port:
+                  number: 80
+    - host: www.slickerius.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-home
+                port:
+                  number: 80
+---
+# Each bare domain redirects to its own www counterpart. The redirect keeps the path and query string.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: slickerius-home-apex-us
+  namespace: slickerius-home
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: "https://www.slickeri.us$request_uri"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - slickeri.us
+      secretName: slickerius-home-tls
+  rules:
+    - host: slickeri.us
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-home
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: slickerius-home-apex-net
+  namespace: slickerius-home
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: "https://www.slickerius.net$request_uri"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - slickerius.net
+      secretName: slickerius-home-tls
+  rules:
+    - host: slickerius.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: slickerius-home
+                port:
+                  number: 80

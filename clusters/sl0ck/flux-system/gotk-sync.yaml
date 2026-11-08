@@ -73,3 +73,11 @@ spec:
         namespace: ^beatlesguessr$
       paths:
         - /spec/template/spec/containers/0/image
+    - target:
+        group: apps
+        version: v1
+        kind: Deployment
+        name: ^slickerius-home$
+        namespace: ^slickerius-home$
+      paths:
+        - /spec/template/spec/containers/0/image
